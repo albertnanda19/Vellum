@@ -1,10 +1,20 @@
 pub mod error {
     #[derive(Clone, Debug)]
-    pub struct Error;
+    pub struct Error {
+        message: String,
+    }
+
+    impl Error {
+        pub fn message(message: impl Into<String>) -> Self {
+            Self {
+                message: message.into(),
+            }
+        }
+    }
 
     impl core::fmt::Display for Error {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            write!(f, "vellum error")
+            write!(f, "{}", self.message)
         }
     }
 
@@ -24,6 +34,19 @@ pub mod migration {
         type Error;
 
         fn run(&self, plan: MigrationPlan) -> Result<MigrationReport, Self::Error>;
+    }
+}
+
+pub mod migrations {
+    use core::future::Future;
+    use core::pin::Pin;
+
+    pub trait DatabaseMigrator {
+        type Error;
+
+        fn apply_baseline<'a>(
+            &'a self,
+        ) -> Pin<Box<dyn Future<Output = Result<(), Self::Error>> + Send + 'a>>;
     }
 }
 

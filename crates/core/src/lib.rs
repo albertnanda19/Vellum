@@ -1,5 +1,6 @@
 pub use vellum_contracts::db;
 pub use vellum_contracts::migration;
+pub use vellum_contracts::migrations;
 pub use vellum_contracts::schema;
 pub use vellum_contracts::sql;
 pub use vellum_contracts::Error;
@@ -11,6 +12,7 @@ pub mod orchestrator {
     use vellum_contracts::sql::SqlEngine;
     use vellum_contracts::Error;
 
+    #[allow(dead_code)]
     pub struct Orchestrator<DB, SCH, SQL>
     where
         DB: DbConnection<Error = Error>,
@@ -51,6 +53,22 @@ pub use orchestrator::Orchestrator;
 
 pub use vellum_contracts::migration::{MigrationOrchestrator, MigrationPlan, MigrationReport};
 
+pub mod bootstrap {
+    use core::future::Future;
+    use core::pin::Pin;
+    use vellum_contracts::migrations::DatabaseMigrator;
+    use vellum_contracts::Error;
+
+    pub fn apply_baseline<'a, M>(
+        migrator: &'a M,
+    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
+    where
+        M: DatabaseMigrator<Error = Error>,
+    {
+        migrator.apply_baseline()
+    }
+}
+
 pub mod commands {
     use vellum_contracts::migration::{MigrationOrchestrator, MigrationPlan, MigrationReport};
 
@@ -79,6 +97,9 @@ pub mod commands {
 #[cfg(feature = "runtime")]
 pub mod runtime {
     use crate::orchestrator::Orchestrator;
+    use core::future::Future;
+    use core::pin::Pin;
+    use crate::Error;
 
     pub fn build_orchestrator(
     ) -> Orchestrator<vellum_db::DefaultDbConnection, vellum_schema::DefaultSchemaIntrospector, vellum_sql::DefaultSqlEngine>
@@ -88,5 +109,12 @@ pub mod runtime {
             vellum_schema::DefaultSchemaIntrospector::new(),
             vellum_sql::DefaultSqlEngine::new(),
         )
+    }
+
+    pub fn build_migrator<'a>(
+        database_url: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<vellum_db::SqlxDatabaseMigrator, Error>> + Send + 'a>>
+    {
+        Box::pin(async move { vellum_db::SqlxDatabaseMigrator::connect(database_url).await })
     }
 }

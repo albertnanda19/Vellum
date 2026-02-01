@@ -7,3 +7,4 @@ edition = "2021"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 vellum-core = { path = "../core", features = ["runtime"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
