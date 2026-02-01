@@ -5,6 +5,7 @@ members = [
   "crates/contracts",
   "crates/core",
   "crates/migration",
+  "crates/executor",
   "crates/sql",
   "crates/schema",
   "crates/db",

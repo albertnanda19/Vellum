@@ -117,4 +117,22 @@ pub mod runtime {
     {
         Box::pin(async move { vellum_db::SqlxDatabaseMigrator::connect(database_url).await })
     }
+
+    pub fn run_migrations<'a>(
+        database_url: &'a str,
+        migrations_dir: &'a std::path::Path,
+        vellum_version: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<vellum_executor::RunReport, Error>> + Send + 'a>> {
+        Box::pin(async move {
+            let migrations = vellum_migration::discover_migrations(migrations_dir)
+                .map_err(|e| Error::message(e.to_string()))?;
+
+            let pool = sqlx::PgPool::connect(database_url)
+                .await
+                .map_err(|e| Error::message(e.to_string()))?;
+
+            let runner = vellum_executor::Runner::new(pool, vellum_version);
+            runner.run(&migrations).await.map_err(|e| Error::message(e.to_string()))
+        })
+    }
 }
