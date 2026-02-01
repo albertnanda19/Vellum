@@ -1,6 +1,8 @@
-[package]
-name = "vellum"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
+[workspace]
+members = [
+  "crates/cli",
+  "crates/core",
+  "crates/sql",
+  "crates/schema",
+  "crates/db",
+]
