@@ -1,3 +1,2 @@
-pub fn ping() -> &'static str {
-    "pong"
-}
+#[derive(Clone, Debug)]
+pub struct SchemaSnapshot;
