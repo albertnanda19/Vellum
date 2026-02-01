@@ -70,21 +70,30 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ";
 
 pub async fn insert_run(pool: &sqlx::PgPool, vellum_version: &str) -> Result<Uuid, ExecutorError> {
-    let (db_name, db_user, client_host): (String, String, Option<String>) = sqlx::query_as(SQL_DB_INFO)
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ExecutorError::RunTrackingFailed {
-            run_id: "<uncreated>".to_string(),
-            operation: "db_info".to_string(),
-            message: e.to_string(),
-            original_error: None,
-        })?;
+    insert_run_with_mode(pool, "apply", vellum_version).await
+}
+
+pub async fn insert_run_with_mode(
+    pool: &sqlx::PgPool,
+    mode: &str,
+    vellum_version: &str,
+) -> Result<Uuid, ExecutorError> {
+    let (db_name, db_user, client_host): (String, String, Option<String>) =
+        sqlx::query_as(SQL_DB_INFO)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ExecutorError::RunTrackingFailed {
+                run_id: "<uncreated>".to_string(),
+                operation: "db_info".to_string(),
+                message: e.to_string(),
+                original_error: None,
+            })?;
 
     let run_id = Uuid::new_v4();
 
     sqlx::query(SQL_INSERT_RUN)
         .bind(run_id)
-        .bind("apply")
+        .bind(mode)
         .bind("running")
         .bind(db_name)
         .bind(db_user)

@@ -1,5 +1,7 @@
 use crate::audit;
 use crate::error::ExecutorError;
+use crate::mode::ExecutionMode;
+use crate::dry_run;
 use crate::statement;
 use crate::transaction;
 use core::time::Duration;
@@ -12,6 +14,56 @@ pub struct RunReport {
     pub run_id: Uuid,
     pub applied: usize,
     pub skipped: usize,
+}
+
+async fn run_apply(
+    pool: &sqlx::PgPool,
+    vellum_version: &str,
+    migrations: &[Migration],
+) -> Result<RunReport, ExecutorError> {
+    let run_id = audit::insert_run(pool, vellum_version).await?;
+
+    let mut applied = 0usize;
+    let mut skipped = 0usize;
+
+    for m in migrations {
+        let version_str = m.version.to_string();
+        let existing_checksum = audit::get_applied_checksum(pool, &version_str).await?;
+
+        if let Some(db_checksum) = existing_checksum {
+            if db_checksum == m.checksum {
+                skipped += 1;
+                continue;
+            }
+
+            let err = ExecutorError::ChecksumMismatch {
+                version: m.version,
+                expected: db_checksum,
+                actual: m.checksum.clone(),
+            };
+
+            let _ = audit::mark_run_failed(pool, run_id, &err).await;
+            return Err(err);
+        }
+
+        match execute_one(pool, run_id, m).await {
+            Ok(()) => {
+                applied += 1;
+            }
+            Err(err) => {
+                let _ = audit::mark_run_failed(pool, run_id, &err).await;
+                return Err(err);
+            }
+        }
+    }
+
+    audit::mark_run_success(pool, run_id).await?;
+
+    Ok(RunReport {
+        run_id,
+        applied,
+        skipped,
+    })
 }
 
 #[derive(Clone)]
@@ -35,12 +87,20 @@ impl Runner {
     }
 
     pub async fn run(&self, migrations: &[Migration]) -> Result<RunReport, ExecutorError> {
+        self.run_with_mode(ExecutionMode::Apply, migrations).await
+    }
+
+    pub async fn run_with_mode(
+        &self,
+        mode: ExecutionMode,
+        migrations: &[Migration],
+    ) -> Result<RunReport, ExecutorError> {
         let lock_timeout = Duration::from_secs(30);
         let lock = AdvisoryLockGuard::acquire(&self.database_url, lock_timeout)
             .await
             .map_err(map_lock_error)?;
 
-        let result = self.run_locked(migrations).await;
+        let result = self.run_locked(mode, migrations).await;
         match lock.release().await {
             Ok(()) => result,
             Err(release_err) => {
@@ -53,50 +113,17 @@ impl Runner {
         }
     }
 
-    async fn run_locked(&self, migrations: &[Migration]) -> Result<RunReport, ExecutorError> {
-        let run_id = audit::insert_run(&self.pool, &self.vellum_version).await?;
-
-        let mut applied = 0usize;
-        let mut skipped = 0usize;
-
-        for m in migrations {
-            let version_str = m.version.to_string();
-            let existing_checksum = audit::get_applied_checksum(&self.pool, &version_str).await?;
-
-            if let Some(db_checksum) = existing_checksum {
-                if db_checksum == m.checksum {
-                    skipped += 1;
-                    continue;
-                }
-
-                let err = ExecutorError::ChecksumMismatch {
-                    version: m.version,
-                    expected: db_checksum,
-                    actual: m.checksum.clone(),
-                };
-
-                let _ = audit::mark_run_failed(&self.pool, run_id, &err).await;
-                return Err(err);
-            }
-
-            match execute_one(&self.pool, run_id, m).await {
-                Ok(()) => {
-                    applied += 1;
-                }
-                Err(err) => {
-                    let _ = audit::mark_run_failed(&self.pool, run_id, &err).await;
-                    return Err(err);
-                }
+    async fn run_locked(
+        &self,
+        mode: ExecutionMode,
+        migrations: &[Migration],
+    ) -> Result<RunReport, ExecutorError> {
+        match mode {
+            ExecutionMode::Apply => run_apply(&self.pool, &self.vellum_version, migrations).await,
+            ExecutionMode::DryRun => {
+                dry_run::run(&self.pool, &self.vellum_version, migrations).await
             }
         }
-
-        audit::mark_run_success(&self.pool, run_id).await?;
-
-        Ok(RunReport {
-            run_id,
-            applied,
-            skipped,
-        })
     }
 }
 

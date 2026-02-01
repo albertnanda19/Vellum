@@ -46,6 +46,21 @@ pub enum ExecutorError {
         message: String,
         original_error: String,
     },
+    DryRunFailed {
+        message: String,
+        original_error: String,
+    },
+    DryRunTransactionError {
+        operation: String,
+        message: String,
+        original_error: Option<String>,
+    },
+    DryRunValidationError {
+        migration_version: i64,
+        statement_ordinal: Option<i32>,
+        sql_snippet: Option<String>,
+        message: String,
+    },
 }
 
 impl fmt::Display for ExecutorError {
@@ -127,6 +142,45 @@ impl fmt::Display for ExecutorError {
                 f,
                 "transaction rollback failed (version={migration_version}): {message}; original_error={original_error}"
             ),
+            ExecutorError::DryRunFailed {
+                message,
+                original_error,
+            } => write!(f, "dry-run failed: {message}; original_error={original_error}"),
+            ExecutorError::DryRunTransactionError {
+                operation,
+                message,
+                original_error,
+            } => {
+                if let Some(original_error) = original_error {
+                    write!(
+                        f,
+                        "dry-run transaction error (op={operation}): {message}; original_error={original_error}"
+                    )
+                } else {
+                    write!(f, "dry-run transaction error (op={operation}): {message}")
+                }
+            }
+            ExecutorError::DryRunValidationError {
+                migration_version,
+                statement_ordinal,
+                sql_snippet,
+                message,
+            } => {
+                let ordinal = statement_ordinal
+                    .map(|o| o.to_string())
+                    .unwrap_or_else(|| "<unknown>".to_string());
+                if let Some(sql_snippet) = sql_snippet {
+                    write!(
+                        f,
+                        "dry-run validation error (version={migration_version}, ordinal={ordinal}): {message}; sql={sql_snippet}"
+                    )
+                } else {
+                    write!(
+                        f,
+                        "dry-run validation error (version={migration_version}, ordinal={ordinal}): {message}"
+                    )
+                }
+            }
         }
     }
 }
