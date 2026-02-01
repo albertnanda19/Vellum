@@ -1,5 +1,6 @@
 pub mod args;
 pub mod error;
+pub mod output;
 pub mod migrate;
 pub mod status;
 
