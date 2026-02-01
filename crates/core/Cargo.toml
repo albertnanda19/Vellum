@@ -3,3 +3,12 @@ name = "vellum-core"
 version = "0.1.0"
 edition = "2021"
 
+
+[features]
+runtime = ["dep:vellum-db", "dep:vellum-schema", "dep:vellum-sql"]
+
+[dependencies]
+vellum-contracts = { path = "../contracts" }
+vellum-db = { path = "../db", optional = true }
+vellum-schema = { path = "../schema", optional = true }
+vellum-sql = { path = "../sql", optional = true }

@@ -3,3 +3,7 @@ name = "vellum-schema"
 version = "0.1.0"
 edition = "2021"
 
+
+
+[dependencies]
+vellum-contracts = { path = "../contracts" }

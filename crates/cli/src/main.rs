@@ -17,9 +17,17 @@ enum Command {
 fn main() {
     let cli = Cli::parse();
 
+    let orchestrator = vellum_core::runtime::build_orchestrator();
+
     match cli.command {
-        Command::Migrate => vellum_core::commands::migrate(),
-        Command::DryRun => vellum_core::commands::dry_run(),
-        Command::Status => vellum_core::commands::status(),
+        Command::Migrate => {
+            let _ = vellum_core::commands::migrate(&orchestrator);
+        }
+        Command::DryRun => {
+            let _ = vellum_core::commands::dry_run(&orchestrator);
+        }
+        Command::Status => {
+            let _ = vellum_core::commands::status(&orchestrator);
+        }
     }
 }

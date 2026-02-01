@@ -22,3 +22,22 @@ pub mod contract {
 }
 
 pub use contract::{SqlAnalysis, SqlAnalyzer, SqlAst, SqlDocument, SqlParser};
+
+pub struct DefaultSqlEngine;
+
+impl DefaultSqlEngine {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl vellum_contracts::sql::SqlEngine for DefaultSqlEngine {
+    type Error = vellum_contracts::Error;
+
+    fn parse_and_analyze(
+        &self,
+        _input: &str,
+    ) -> Result<vellum_contracts::sql::SqlAnalysis, Self::Error> {
+        Ok(vellum_contracts::sql::SqlAnalysis)
+    }
+}
