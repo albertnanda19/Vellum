@@ -17,33 +17,72 @@ impl ExitCode {
 #[derive(Debug, Clone)]
 pub struct CliError {
     code: ExitCode,
-    message: String,
-    hint: Option<String>,
+    title: String,
+    reason: Option<String>,
+    meaning: Option<String>,
+    action: Option<String>,
 }
 
 impl CliError {
-    pub fn user_error(message: impl Into<String>, hint: impl Into<String>) -> Self {
+    pub fn user_error(title: impl Into<String>) -> Self {
         Self {
             code: ExitCode::UserError,
-            message: message.into(),
-            hint: Some(hint.into()),
+            title: title.into(),
+            reason: None,
+            meaning: None,
+            action: None,
         }
     }
 
-    pub fn migration_failed(message: impl Into<String>, hint: impl Into<String>) -> Self {
+    pub fn migration_failed(title: impl Into<String>) -> Self {
         Self {
             code: ExitCode::MigrationFailed,
-            message: message.into(),
-            hint: Some(hint.into()),
+            title: title.into(),
+            reason: None,
+            meaning: None,
+            action: None,
         }
     }
 
-    pub fn lock_unavailable(message: impl Into<String>, hint: impl Into<String>) -> Self {
+    pub fn lock_unavailable(title: impl Into<String>) -> Self {
         Self {
             code: ExitCode::LockUnavailable,
-            message: message.into(),
-            hint: Some(hint.into()),
+            title: title.into(),
+            reason: None,
+            meaning: None,
+            action: None,
         }
+    }
+
+    pub fn with_reason(mut self, reason: impl Into<String>) -> Self {
+        self.reason = Some(reason.into());
+        self
+    }
+
+    pub fn with_meaning(mut self, meaning: impl Into<String>) -> Self {
+        self.meaning = Some(meaning.into());
+        self
+    }
+
+    pub fn with_action(mut self, action: impl Into<String>) -> Self {
+        self.action = Some(action.into());
+        self
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn reason(&self) -> Option<&str> {
+        self.reason.as_deref()
+    }
+
+    pub fn meaning(&self) -> Option<&str> {
+        self.meaning.as_deref()
+    }
+
+    pub fn action(&self) -> Option<&str> {
+        self.action.as_deref()
     }
 
     pub fn exit_code(&self) -> i32 {
@@ -53,11 +92,7 @@ impl CliError {
 
 impl fmt::Display for CliError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(hint) = &self.hint {
-            write!(f, "{}\n{}", self.message, hint)
-        } else {
-            write!(f, "{}", self.message)
-        }
+        write!(f, "{}", self.title)
     }
 }
 

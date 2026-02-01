@@ -1,19 +1,25 @@
 use crate::args::StatusArgs;
 use crate::error::CliError;
 use crate::output;
+use crate::style::Style;
+use crate::ui::Ui;
 use std::collections::HashSet;
 use vellum_migration::{discover_migrations, MigrationDiscoveryError};
 
 pub async fn run(_args: &StatusArgs, database_url_override: Option<&str>) -> Result<(), CliError> {
     let database_url = resolve_database_url(database_url_override)?;
 
+    let style = Style::detect();
+    let ui = Ui::new(style);
+
     let pool = sqlx::PgPool::connect(&database_url)
         .await
         .map_err(|_| {
-            CliError::user_error(
-                "Failed to connect to database",
-                "Check DATABASE_URL and verify the database is reachable.",
-            )
+            CliError::user_error("Failed to connect to database")
+                .with_reason("Database connection failed.")
+                .with_action(
+                    "Check DATABASE_URL (or pass --database-url) and verify the database is reachable.",
+                )
         })?;
 
     let migrations_dir = std::path::Path::new("migrations");
@@ -34,20 +40,27 @@ pub async fn run(_args: &StatusArgs, database_url_override: Option<&str>) -> Res
 
     let database_name = select_database_name(&pool).await?;
 
-    output::line(format!("Database: {database_name}"));
-    match last_applied {
-        Some((version, _name)) => output::line(format!("Last migration: {version}")),
-        None => output::line("Last migration: none"),
+    for line in ui.header("Vellum Status") {
+        output::line(line);
     }
-    output::line(format!("Applied migrations: {applied_count}"));
-    output::line(format!("Pending migrations: {pending}"));
-    match last_run_status {
-        Some(status) => output::line(format!("Last run status: {status}")),
-        None => output::line("Last run status: none"),
-    }
+    output::line(ui.kv("Database", &database_name));
+    output::line("");
+
+    output::line(ui.kv("Applied migrations", &applied_count.to_string()));
+    output::line(ui.kv("Pending migrations", &pending.to_string()));
+
+    let last_migration = match &last_applied {
+        Some((version, name)) => last_migration_label(&local, version, name),
+        None => "none".to_string(),
+    };
+    output::line(ui.kv("Last migration", &last_migration));
+
+    let last_status = last_run_status.unwrap_or_else(|| "none".to_string());
+    output::line(ui.kv("Last run status", &last_status));
+    output::line(ui.footer());
 
     if pending > 0 {
-        output::line("Run `vellum migrate` to apply");
+        output::line(ui.info_line("Run `vellum migrate` to apply pending migrations"));
     }
 
     Ok(())
@@ -59,31 +72,31 @@ async fn select_database_name(pool: &sqlx::PgPool) -> Result<String, CliError> {
 
     match row {
         Ok(r) => Ok(r.0),
-        Err(e) => Err(CliError::migration_failed(
-            "Status query failed",
-            format!("Database query failed: {}", e.to_string()),
-        )),
+        Err(_) => Err(CliError::migration_failed("Status query failed")
+            .with_reason("Database query failed.")
+            .with_action("Verify database connectivity and permissions, then try again.")),
     }
 }
 
 fn resolve_database_url(database_url_override: Option<&str>) -> Result<String, CliError> {
     match database_url_override {
         Some(v) if !v.trim().is_empty() => Ok(v.to_string()),
-        _ => match std::env::var("DATABASE_URL") {
+        _ => match std::env::var("VELLUM_DATABASE_URL") {
             Ok(v) if !v.trim().is_empty() => Ok(v),
-            _ => Err(CliError::user_error(
-                "DATABASE_URL is required",
-                "Set DATABASE_URL or pass --database-url to the CLI.",
-            )),
+            _ => match std::env::var("DATABASE_URL") {
+                Ok(v) if !v.trim().is_empty() => Ok(v),
+                _ => Err(CliError::user_error("Database URL is required").with_action(
+                    "Set VELLUM_DATABASE_URL (or DATABASE_URL) or pass --database-url to the CLI.",
+                )),
+            },
         },
     }
 }
 
 fn map_discovery_error(err: MigrationDiscoveryError) -> CliError {
-    CliError::user_error(
-        format!("Migration discovery failed: {err}"),
-        "Ensure the 'migrations' directory exists and contains valid .sql migration files.",
-    )
+    CliError::user_error("Migration discovery failed")
+        .with_reason(err.to_string())
+        .with_action("Ensure the 'migrations' directory exists and contains valid .sql migration files.")
 }
 
 async fn select_applied_versions(pool: &sqlx::PgPool) -> Result<HashSet<String>, CliError> {
@@ -136,15 +149,39 @@ fn map_status_sql_error(err: sqlx::Error) -> CliError {
     let msg = err.to_string();
     if msg.contains("vellum.vellum_migrations") || msg.contains("vellum.vellum_runs") {
         if msg.contains("does not exist") || msg.contains("undefined_table") {
-            return CliError::user_error(
-                "Vellum schema is not initialized",
-                "Run `vellum migrate` to initialize the schema.",
-            );
+            return CliError::user_error("Vellum schema is not initialized")
+                .with_action("Run `vellum migrate` to initialize the schema.");
         }
     }
 
-    CliError::migration_failed(
-        "Status query failed",
-        format!("Database query failed: {msg}"),
-    )
+    CliError::migration_failed("Status query failed")
+        .with_reason({
+            let _ = msg;
+            "Database query failed."
+        })
+        .with_action("Verify database connectivity and permissions, then try again.")
+}
+
+fn last_migration_label(
+    local: &[vellum_migration::Migration],
+    version: &str,
+    name: &str,
+) -> String {
+    if let Ok(v) = version.parse::<i64>() {
+        for m in local {
+            if m.version == v {
+                return m
+                    .filename
+                    .strip_suffix(".sql")
+                    .unwrap_or(&m.filename)
+                    .to_string();
+            }
+        }
+    }
+
+    if name.trim().is_empty() {
+        version.to_string()
+    } else {
+        format!("{version}_{name}")
+    }
 }

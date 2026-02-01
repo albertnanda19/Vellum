@@ -3,11 +3,12 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(
     name = "vellum",
+    version,
     disable_help_subcommand = true,
     propagate_version = true
 )]
 pub struct Cli {
-    #[arg(long, env = "DATABASE_URL", value_name = "URL", global = true)]
+    #[arg(long, env = "VELLUM_DATABASE_URL", value_name = "URL", global = true)]
     pub database_url: Option<String>,
 
     #[command(subcommand)]

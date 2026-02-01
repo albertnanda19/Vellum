@@ -2,6 +2,8 @@ use clap::Parser;
 
 #[tokio::main]
 async fn main() {
+    let _ = dotenvy::dotenv();
+
     let cli = vellum_cli::Cli::parse();
 
     let result = match cli.command {
@@ -17,7 +19,7 @@ async fn main() {
     };
 
     if let Err(err) = result {
-        eprintln!("{err}");
+        vellum_cli::error_view::print(&err);
         std::process::exit(err.exit_code());
     }
 }
