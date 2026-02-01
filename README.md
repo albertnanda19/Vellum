@@ -343,7 +343,3 @@ Contributions are welcome:
 ## 14. Author
 
 Albert Mangiri
-
-## 15. License
-
-MIT License (or TBD)
