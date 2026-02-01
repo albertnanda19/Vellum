@@ -1671,6 +1671,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "vellum-migration"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "vellum-schema"
 version = "0.1.0"
 dependencies = [
