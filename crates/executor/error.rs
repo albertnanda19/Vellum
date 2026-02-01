@@ -2,6 +2,16 @@ use core::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutorError {
+    MigrationLockUnavailable {
+        timeout_ms: u64,
+    },
+    LockAcquireFailed {
+        message: String,
+    },
+    LockReleaseFailed {
+        message: String,
+        original_error: Option<String>,
+    },
     MigrationAlreadyApplied {
         version: i64,
     },
@@ -41,6 +51,22 @@ pub enum ExecutorError {
 impl fmt::Display for ExecutorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            ExecutorError::MigrationLockUnavailable { timeout_ms } => {
+                write!(f, "migration lock unavailable (timeout_ms={timeout_ms})")
+            }
+            ExecutorError::LockAcquireFailed { message } => {
+                write!(f, "lock acquire failed: {message}")
+            }
+            ExecutorError::LockReleaseFailed {
+                message,
+                original_error,
+            } => {
+                if let Some(original_error) = original_error {
+                    write!(f, "lock release failed: {message}; original_error={original_error}")
+                } else {
+                    write!(f, "lock release failed: {message}")
+                }
+            }
             ExecutorError::MigrationAlreadyApplied { version } => {
                 write!(f, "migration already applied: version={version}")
             }

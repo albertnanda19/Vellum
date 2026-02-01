@@ -131,7 +131,7 @@ pub mod runtime {
                 .await
                 .map_err(|e| Error::message(e.to_string()))?;
 
-            let runner = vellum_executor::Runner::new(pool, vellum_version);
+            let runner = vellum_executor::Runner::new(pool, database_url, vellum_version);
             runner.run(&migrations).await.map_err(|e| Error::message(e.to_string()))
         })
     }

@@ -1716,7 +1716,16 @@ version = "0.1.0"
 dependencies = [
  "sqlx",
  "uuid",
+ "vellum-lock",
  "vellum-migration",
+]
+
+[[package]]
+name = "vellum-lock"
+version = "0.1.0"
+dependencies = [
+ "sqlx",
+ "tokio",
 ]
 
 [[package]]

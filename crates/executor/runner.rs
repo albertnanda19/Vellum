@@ -2,7 +2,9 @@ use crate::audit;
 use crate::error::ExecutorError;
 use crate::statement;
 use crate::transaction;
+use core::time::Duration;
 use uuid::Uuid;
+use vellum_lock::{AdvisoryLockGuard, LockError};
 use vellum_migration::Migration;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,17 +18,42 @@ pub struct RunReport {
 pub struct Runner {
     pool: sqlx::PgPool,
     vellum_version: String,
+    database_url: String,
 }
 
 impl Runner {
-    pub fn new(pool: sqlx::PgPool, vellum_version: impl Into<String>) -> Self {
+    pub fn new(
+        pool: sqlx::PgPool,
+        database_url: impl Into<String>,
+        vellum_version: impl Into<String>,
+    ) -> Self {
         Self {
             pool,
+            database_url: database_url.into(),
             vellum_version: vellum_version.into(),
         }
     }
 
     pub async fn run(&self, migrations: &[Migration]) -> Result<RunReport, ExecutorError> {
+        let lock_timeout = Duration::from_secs(30);
+        let lock = AdvisoryLockGuard::acquire(&self.database_url, lock_timeout)
+            .await
+            .map_err(map_lock_error)?;
+
+        let result = self.run_locked(migrations).await;
+        match lock.release().await {
+            Ok(()) => result,
+            Err(release_err) => {
+                let original_error = result.as_ref().err().map(|e| e.to_string());
+                Err(ExecutorError::LockReleaseFailed {
+                    message: release_err.to_string(),
+                    original_error,
+                })
+            }
+        }
+    }
+
+    async fn run_locked(&self, migrations: &[Migration]) -> Result<RunReport, ExecutorError> {
         let run_id = audit::insert_run(&self.pool, &self.vellum_version).await?;
 
         let mut applied = 0usize;
@@ -70,6 +97,19 @@ impl Runner {
             applied,
             skipped,
         })
+    }
+}
+
+fn map_lock_error(err: LockError) -> ExecutorError {
+    match err {
+        LockError::MigrationLockUnavailable { timeout_ms } => {
+            ExecutorError::MigrationLockUnavailable { timeout_ms }
+        }
+        LockError::LockAcquireFailed { message } => ExecutorError::LockAcquireFailed { message },
+        LockError::LockReleaseFailed { message } => ExecutorError::LockReleaseFailed {
+            message,
+            original_error: None,
+        },
     }
 }
 
