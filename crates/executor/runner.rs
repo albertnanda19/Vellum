@@ -146,7 +146,11 @@ async fn execute_one(
     migration: &Migration,
 ) -> Result<(), ExecutorError> {
     let migration_version = migration.version;
-    let statements = statement::split_statements(&migration.sql);
+    let statements = statement::split_statements(
+        &migration.sql,
+        Some(&migration.filename),
+        migration_version,
+    )?;
 
     let mut tx = transaction::begin(pool, migration_version).await?;
 

@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 
+[lib]
+path = "mod.rs"
+
+
 
 [dependencies]
+pg_query = "6.1"
 vellum-contracts = { path = "../contracts" }

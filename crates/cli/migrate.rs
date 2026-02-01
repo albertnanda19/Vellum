@@ -118,5 +118,11 @@ fn map_executor_error(err: ExecutorError) -> CliError {
         ExecutorError::LockReleaseFailed { .. } => {
             CliError::message("Failed to release migration lock")
         }
+        ExecutorError::StatementParsingFailed {
+            migration_version,
+            message,
+        } => CliError::message(format!(
+            "Migration failed at version {migration_version} (statement parsing failed): {message}"
+        )),
     }
 }

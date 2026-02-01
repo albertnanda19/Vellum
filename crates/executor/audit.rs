@@ -220,12 +220,12 @@ pub async fn insert_statement(
     success: bool,
     error_message: Option<&str>,
 ) -> Result<(), ExecutorError> {
-    let statement_hash = sha256_hex(stmt.sql.as_bytes());
-    let kind = super::statement::statement_kind(&stmt.sql);
+    let statement_hash = sha256_hex(stmt.sql().as_bytes());
+    let kind = super::statement::statement_kind(stmt.sql());
 
     sqlx::query(SQL_INSERT_STATEMENT)
         .bind(migration_id)
-        .bind(stmt.ordinal)
+        .bind(stmt.ordinal())
         .bind(statement_hash)
         .bind(kind)
         .bind(true)

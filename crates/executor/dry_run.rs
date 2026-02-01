@@ -37,11 +37,16 @@ pub async fn run(
     };
 
     for m in &planned.to_apply {
-        let statements = statement::split_statements(&m.sql);
+        let statements = statement::split_statements(&m.sql, Some(&m.filename), m.version)?;
 
         for stmt in &statements {
             if let Err(err) = statement::execute_statement(&mut tx, m.version, stmt).await {
-                let mapped = map_validation_error(m.version, Some(stmt.ordinal), Some(&stmt.sql), &err);
+                let mapped = map_validation_error(
+                    m.version,
+                    Some(stmt.ordinal()),
+                    Some(stmt.sql()),
+                    &err,
+                );
 
                 let rollback_res = tx.rollback().await;
                 if let Err(rollback_err) = rollback_res {

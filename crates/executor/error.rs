@@ -61,6 +61,10 @@ pub enum ExecutorError {
         sql_snippet: Option<String>,
         message: String,
     },
+    StatementParsingFailed {
+        migration_version: i64,
+        message: String,
+    },
 }
 
 impl fmt::Display for ExecutorError {
@@ -181,6 +185,13 @@ impl fmt::Display for ExecutorError {
                     )
                 }
             }
+            ExecutorError::StatementParsingFailed {
+                migration_version,
+                message,
+            } => write!(
+                f,
+                "statement parsing failed (version={migration_version}): {message}"
+            ),
         }
     }
 }

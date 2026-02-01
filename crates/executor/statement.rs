@@ -1,10 +1,18 @@
 use crate::error::ExecutorError;
 use core::time::Duration;
+use vellum_sql::StatementParser;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SqlStatement {
-    pub ordinal: i32,
-    pub sql: String,
+pub struct SqlStatement(pub vellum_sql::SqlStatement);
+
+impl SqlStatement {
+    pub fn ordinal(&self) -> i32 {
+        self.0.ordinal
+    }
+
+    pub fn sql(&self) -> &str {
+        &self.0.sql
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,28 +23,20 @@ pub struct StatementOutcome {
     pub error_message: Option<String>,
 }
 
-pub fn split_statements(sql: &str) -> Vec<SqlStatement> {
-    let mut out = Vec::new();
+pub fn split_statements(
+    sql: &str,
+    source_name: Option<&str>,
+    migration_version: i64,
+) -> Result<Vec<SqlStatement>, ExecutorError> {
+    let parser = vellum_sql::PgQueryStatementParser::new();
+    let parsed = parser
+        .parse_statements(sql, source_name)
+        .map_err(|e| ExecutorError::StatementParsingFailed {
+            migration_version,
+            message: e.to_string(),
+        })?;
 
-    for chunk in sql.split(';') {
-        let stmt = chunk.trim();
-        if stmt.is_empty() {
-            continue;
-        }
-
-        let next = out.len().saturating_add(1);
-        let ordinal = if next > i32::MAX as usize {
-            i32::MAX
-        } else {
-            next as i32
-        };
-        out.push(SqlStatement {
-            ordinal,
-            sql: stmt.to_string(),
-        });
-    }
-
-    out
+    Ok(parsed.into_iter().map(SqlStatement).collect())
 }
 
 pub fn statement_kind(sql: &str) -> String {
@@ -71,29 +71,29 @@ pub async fn execute_statement(
     migration_version: i64,
     stmt: &SqlStatement,
 ) -> Result<i32, ExecutorError> {
-    let kind = statement_kind(&stmt.sql);
+    let kind = statement_kind(stmt.sql());
     if is_forbidden_transaction_control(&kind) {
         return Err(ExecutorError::StatementExecutionFailed {
             migration_version,
-            statement_ordinal: stmt.ordinal,
+            statement_ordinal: stmt.ordinal(),
             execution_time_ms: 0,
-            statement: stmt.sql.clone(),
+            statement: stmt.sql().to_string(),
             message: "transaction control statements are not allowed inside migration files"
                 .to_string(),
         });
     }
 
     let started = std::time::Instant::now();
-    let result = sqlx::query(&stmt.sql).execute(&mut **tx).await;
+    let result = sqlx::query(stmt.sql()).execute(&mut **tx).await;
     let elapsed = duration_ms(started.elapsed());
 
     match result {
         Ok(_) => Ok(elapsed),
         Err(e) => Err(ExecutorError::StatementExecutionFailed {
             migration_version,
-            statement_ordinal: stmt.ordinal,
+            statement_ordinal: stmt.ordinal(),
             execution_time_ms: elapsed,
-            statement: stmt.sql.clone(),
+            statement: stmt.sql().to_string(),
             message: e.to_string(),
         }),
     }
