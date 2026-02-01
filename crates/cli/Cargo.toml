@@ -2,9 +2,15 @@
 name = "vellum-cli"
 version = "0.1.0"
 edition = "2021"
+autobins = false
 
+[lib]
+path = "mod.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-vellum-core = { path = "../core", features = ["runtime"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+sqlx = { version = "0.7", features = ["runtime-tokio", "postgres"] }
+vellum-core = { path = "../core" }
+vellum-db = { path = "../db" }
+vellum-executor = { path = "../executor" }
+vellum-migration = { path = "../migration" }

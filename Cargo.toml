@@ -11,3 +11,17 @@ members = [
   "crates/schema",
   "crates/db",
 ]
+
+[package]
+name = "vellum"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "vellum"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+vellum-cli = { path = "crates/cli" }

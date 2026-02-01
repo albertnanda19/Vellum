@@ -8,7 +8,7 @@ pub async fn run(
     vellum_version: &str,
     migrations: &[Migration],
 ) -> Result<crate::runner::RunReport, ExecutorError> {
-    let run_id = audit::insert_run_with_mode(pool, "dry_run", vellum_version)
+    let run_id = audit::insert_run_with_mode(pool, "dry-run", vellum_version)
         .await
         .map_err(|e| ExecutorError::DryRunFailed {
             message: "run tracking insert failed".to_string(),
