@@ -9,6 +9,7 @@ members = [
   "crates/lock",
   "crates/sql",
   "crates/schema",
+  "crates/vellum_schema",
   "crates/db",
 ]
 

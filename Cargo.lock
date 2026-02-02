@@ -1972,7 +1972,7 @@ dependencies = [
  "vellum-db",
  "vellum-executor",
  "vellum-migration",
- "vellum-schema",
+ "vellum-schema-introspector",
  "vellum-sql",
 ]
 
@@ -2014,6 +2014,13 @@ dependencies = [
 
 [[package]]
 name = "vellum-schema"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "vellum-schema-introspector"
 version = "0.1.0"
 dependencies = [
  "vellum-contracts",

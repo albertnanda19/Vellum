@@ -7,7 +7,7 @@ edition = "2021"
 [features]
 runtime = [
     "dep:vellum-db",
-    "dep:vellum-schema",
+    "dep:vellum-schema-introspector",
     "dep:vellum-sql",
     "dep:vellum-executor",
     "dep:vellum-migration",
@@ -17,7 +17,7 @@ runtime = [
 [dependencies]
 vellum-contracts = { path = "../contracts" }
 vellum-db = { path = "../db", optional = true }
-vellum-schema = { path = "../schema", optional = true }
+vellum-schema-introspector = { path = "../schema", optional = true }
 vellum-sql = { path = "../sql", optional = true }
 vellum-executor = { path = "../executor", optional = true }
 vellum-migration = { path = "../migration", optional = true }

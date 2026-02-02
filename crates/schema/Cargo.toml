@@ -1,9 +1,12 @@
 [package]
-name = "vellum-schema"
+name = "vellum-schema-introspector"
 version = "0.1.0"
 edition = "2021"
 
 
+
+[lib]
+name = "vellum_schema_introspector"
 
 [dependencies]
 vellum-contracts = { path = "../contracts" }

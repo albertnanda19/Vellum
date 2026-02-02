@@ -102,11 +102,11 @@ pub mod runtime {
     use crate::Error;
 
     pub fn build_orchestrator(
-    ) -> Orchestrator<vellum_db::DefaultDbConnection, vellum_schema::DefaultSchemaIntrospector, vellum_sql::DefaultSqlEngine>
+    ) -> Orchestrator<vellum_db::DefaultDbConnection, vellum_schema_introspector::DefaultSchemaIntrospector, vellum_sql::DefaultSqlEngine>
     {
         Orchestrator::new(
             vellum_db::DefaultDbConnection::new(),
-            vellum_schema::DefaultSchemaIntrospector::new(),
+            vellum_schema_introspector::DefaultSchemaIntrospector::new(),
             vellum_sql::DefaultSqlEngine::new(),
         )
     }
