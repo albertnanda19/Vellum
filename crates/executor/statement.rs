@@ -1,9 +1,9 @@
 use crate::error::ExecutorError;
 use core::time::Duration;
-use vellum_sql::StatementParser;
+use vellum_sql_engine::StatementParser;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SqlStatement(pub vellum_sql::SqlStatement);
+pub struct SqlStatement(pub vellum_sql_engine::SqlStatement);
 
 impl SqlStatement {
     pub fn ordinal(&self) -> i32 {
@@ -28,7 +28,7 @@ pub fn split_statements(
     source_name: Option<&str>,
     migration_version: i64,
 ) -> Result<Vec<SqlStatement>, ExecutorError> {
-    let parser = vellum_sql::PgQueryStatementParser::new();
+    let parser = vellum_sql_engine::PgQueryStatementParser::new();
     let parsed = parser
         .parse_statements(sql, source_name)
         .map_err(|e| ExecutorError::StatementParsingFailed {

@@ -1,10 +1,11 @@
 [package]
-name = "vellum-sql"
+name = "vellum-sql-engine"
 version = "0.1.0"
 edition = "2021"
 
 
 [lib]
+name = "vellum_sql_engine"
 path = "mod.rs"
 
 

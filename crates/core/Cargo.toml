@@ -8,7 +8,7 @@ edition = "2021"
 runtime = [
     "dep:vellum-db",
     "dep:vellum-schema-introspector",
-    "dep:vellum-sql",
+    "dep:vellum-sql-engine",
     "dep:vellum-executor",
     "dep:vellum-migration",
     "dep:sqlx",
@@ -18,7 +18,7 @@ runtime = [
 vellum-contracts = { path = "../contracts" }
 vellum-db = { path = "../db", optional = true }
 vellum-schema-introspector = { path = "../schema", optional = true }
-vellum-sql = { path = "../sql", optional = true }
+vellum-sql-engine = { path = "../sql", optional = true }
 vellum-executor = { path = "../executor", optional = true }
 vellum-migration = { path = "../migration", optional = true }
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"], optional = true }

@@ -1973,7 +1973,7 @@ dependencies = [
  "vellum-executor",
  "vellum-migration",
  "vellum-schema-introspector",
- "vellum-sql",
+ "vellum-sql-engine",
 ]
 
 [[package]]
@@ -1992,7 +1992,7 @@ dependencies = [
  "uuid",
  "vellum-lock",
  "vellum-migration",
- "vellum-sql",
+ "vellum-sql-engine",
 ]
 
 [[package]]
@@ -2028,6 +2028,14 @@ dependencies = [
 
 [[package]]
 name = "vellum-sql"
+version = "0.1.0"
+dependencies = [
+ "pg_query",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "vellum-sql-engine"
 version = "0.1.0"
 dependencies = [
  "pg_query",

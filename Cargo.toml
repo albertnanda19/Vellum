@@ -8,6 +8,7 @@ members = [
   "crates/executor",
   "crates/lock",
   "crates/sql",
+  "crates/vellum_sql",
   "crates/schema",
   "crates/vellum_schema",
   "crates/db",
