@@ -2,6 +2,7 @@ mod column;
 mod constraint;
 mod enum_type;
 mod index;
+pub mod normalize;
 mod schema;
 mod table;
 
